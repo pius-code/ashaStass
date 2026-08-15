@@ -4,18 +4,22 @@ from contextlib import asynccontextmanager
 from fastmcp import FastMCP
 from agents.mcp import MCPServerStreamableHttp
 
-mcp = FastMCP("caspier as an mcp. This mcp is used to send messages via telegram and Discord to users") # noqa
+mcp = FastMCP("") # noqa
 
 
 @asynccontextmanager
-async def _connect_mcp_servers():
+async def _connect_mcp_servers(pairing_code: str = ""):
     asha_url = os.getenv("ASHA_MCP")
     asha_cm = None
     servers = []
+    headers = {}
+    if pairing_code:
+        headers["X-Pairing-Code"] = pairing_code
+
     if asha_url:
         try:
             asha_cm = MCPServerStreamableHttp(
-                params={"url": asha_url},
+                params={"url": asha_url, "headers": headers},
                 name="ASHA",
                 client_session_timeout_seconds=5,
                 max_retry_attempts=1,

@@ -8,31 +8,22 @@ import asyncio
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from dotenv import load_dotenv
 from agent.client import OR_CLIENT, GROQ_CLIENT, gpt_groq_model, openRouter_claude_Sonnet_model  # noqa
-from utils.redis import r, store_message, get_user_messages, clear_identity_completely, get_user_identity, normalize_address, _history_to_input_items  # noqa
+from utils.redis import r, store_message, get_user_messages, clear_identity_completely, _history_to_input_items  # noqa
 from utils.caspian import _keep_typing  # noqa
 from core.fastmcp import _connect_mcp_servers  # noqa
+from prompt.system import get_system_prompt  # noqa
 load_dotenv()
 
 
-async def agent(message):
+async def agent(message, identity_key: str):
     typing_task = asyncio.create_task(_keep_typing(message, interval=10))
     try:
-        return await _agent_inner(message)
+        return await _agent_inner(message, identity_key)
     finally:
         typing_task.cancel()
 
 
-async def _agent_inner(message):
-    conv_id = getattr(message, "conversation_id", None)
-    identity_key = get_user_identity(
-        message.channel,
-        message.sender['address'],
-        conversation_id=conv_id,
-    )
-    if identity_key is None:
-        identity_key = f"identity:{uuid.uuid4().hex}"
-        r.hset(identity_key, mapping={message.channel: normalize_address(message.sender['address'])})
-
+async def _agent_inner(message, identity_key: str):
     if message.text and message.text.strip().lower() == "clear":
         clear_identity_completely(identity_key)
         message.reply("History/session erased from memory")
@@ -45,12 +36,21 @@ async def _agent_inner(message):
 
     store_message(identity_key, "user", message.text, message.channel)
     history = get_user_messages(identity_key)
+
+    print(f"--- History for {identity_key} ({len(history)} messages) ---")
+    for h in history:
+        print(f"  {h['role']:<12} | {h.get('channel'):<10} | {h['text'][:200]}")
+    print("---------------------------------------------------------")
+
     input_items = _history_to_input_items(history)
 
-    async with _connect_mcp_servers() as active_mcp_servers:
+    raw_code = r.hget(identity_key, "pairing_code")
+    user_pairing_code = raw_code.decode("utf-8") if isinstance(raw_code, bytes) else str(raw_code or "")  # noqa
+
+    async with _connect_mcp_servers(pairing_code=user_pairing_code) as active_mcp_servers:
         agent = Agent(
             name="ASHA",
-            instructions="You are ASHA, a helpful personal assistant AI with ASHA IoT tools.",
+            instructions=get_system_prompt(),
             mcp_servers=active_mcp_servers,
             model=OpenAIChatCompletionsModel(
                 model=gpt_groq_model,

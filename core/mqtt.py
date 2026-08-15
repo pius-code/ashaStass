@@ -1,7 +1,7 @@
 import os
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
-from handler.event_handler import event_handler
+
 load_dotenv()
 
 # Same broker ashaBackend's ESP32 devices actually publish to (a private LAN
@@ -25,7 +25,6 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     topic = msg.topic  # e.g. "asha-iris/events/a1b2c3"
     task_id = topic.split("/")[-1] # noqa
-    event_handler(msg)
 
 
 mqtt_client.on_connect = on_connect
