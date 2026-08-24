@@ -1,4 +1,5 @@
 import os
+import uuid
 import redis
 import json
 from dotenv import load_dotenv
@@ -12,8 +13,6 @@ r = redis.Redis.from_url(
     retry_on_timeout=True,
 )
 
-# TODO: post-capstone, move this to a permanent DB
-
 
 def normalize_address(address: str) -> str:
     """Telegram usernames and emails are both effectively case-insensitive
@@ -22,15 +21,22 @@ def normalize_address(address: str) -> str:
     return address.strip().lower()
 
 
-def get_user_identity(channel: str, address: str, conversation_id: str | None = None): # noqa
+def _safe_str(val: bytes | str | None) -> str | None:
+    if val is None:
+        return None
+    if isinstance(val, bytes):
+        return val.decode("utf-8")
+    return str(val)
+
+
+def get_or_create_user_identity(channel: str, address: str, conversation_id: str | None = None) -> tuple[str, str | None]: # noqa
     address = normalize_address(address)
-    # 1. Primary check: exact channel + address match
     for key in r.scan_iter("identity:*"):
         data = r.hgetall(key)
         if data.get(channel) == address:
-            return key
+            key_str = key.decode("utf-8") if isinstance(key, bytes) else str(key) # noqa
+            return key_str, _safe_str(data.get("pairing_code"))
 
-    # 2. Fallback check: match strictly by conversation_id (unique 1-to-1 chat thread) # noqa
     if conversation_id:
         for key in r.scan_iter(f"{channel}:*"):
             c_data = r.hgetall(key)
@@ -41,17 +47,18 @@ def get_user_identity(channel: str, address: str, conversation_id: str | None = 
                         id_data = r.hgetall(id_key)
                         if id_data.get(channel) == old_address:
                             r.hset(id_key, channel, address)
-                            print(f"Updated identity {id_key} {channel} handlrr{old_address} -> {address}") # noqa
-                            return id_key
+                            print(f"Updated identity {id_key} {channel} handle {old_address} -> {address}") # noqa
+                            id_key_str = id_key.decode("utf-8") if isinstance(id_key, bytes) else str(id_key) # noqa
+                            return id_key_str, _safe_str(id_data.get("pairing_code")) # noqa
 
-    return None
+    new_key = f"identity:{uuid.uuid4().hex}"
+    r.hset(new_key, mapping={channel: address})
+    return new_key, None
 
 
-# def lookup_contact(channel: str, address: str):
-#     address = normalize_address(address)
-#     key = f"{channel}:{address}"
-#     data = r.hgetall(key)
-#     return data if data else None
+def get_user_identity(channel: str, address: str, conversation_id: str | None = None): # noqa
+    key, _ = get_or_create_user_identity(channel, address, conversation_id)
+    return key
 
 
 def store_message(identity_key: str, role: str, text: str, channel: str):
@@ -84,9 +91,10 @@ def clear_identity_completely(identity_key: str) -> None:
     r.delete(identity_key)
 
 
-def _history_to_input_items(history):
+def _history_to_input_items(history, max_messages: int = 16):
+    recent_history = history[-max_messages:] if len(history) > max_messages else history # noqa
     input_items = []
-    for h in history:
+    for h in recent_history:
         if h["role"] == "tool_call":
             call = json.loads(h["text"])
             input_items.append({
@@ -102,7 +110,9 @@ def _history_to_input_items(history):
                 "call_id": result["call_id"],
                 "output": result["output"],
             })
+        elif h["role"] == "assistant":
+            input_items.append({"role": "assistant", "content": h["text"]})
         else:
-            input_items.append({"role": h["role"], "content": f"[via {h['channel']}] {h['text']}"}) # noqa
+            input_items.append({"role": "user", "content": f"[via {h['channel']}] {h['text']}"}) # noqa
 
     return input_items

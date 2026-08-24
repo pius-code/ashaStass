@@ -1,50 +1,54 @@
 import asyncio
-import uuid
+import threading
+import uvicorn
 from core.casp import client
-from utils.asha import check_pairing_code_validity
-from utils.redis import r, get_user_identity, normalize_address
+from utils.redis import get_or_create_user_identity
 from agent.mcp_client import agent
+from core.fastapi import app
+from routes.ashaStass import router as asha_router
+import utils.middleware # noqa # loads and uses the cors 
+
+
+app.include_router(asha_router)
+
+
+@client.on_message
+def handle(message):
+    print(message)
+    conv_id = getattr(message, "conversation_id", None)
+    identity_key, user_pairing_code = get_or_create_user_identity(
+        message.channel,
+        message.sender["address"],
+        conversation_id=conv_id,
+    )
+
+    if not user_pairing_code:
+        web_link = f"http://localhost:3000/pair?channel={message.channel}&address={message.sender['address']}"  # noqa
+        reply_text = f"Looks like your account is unpaired!\n\nPlease click here to log in and pair your device:\n{web_link}" # noqa
+        message.reply(reply_text)
+        return
+
+    try:
+        agent_reply = asyncio.run(agent(message, identity_key))
+    except Exception as e:
+        print(f"agent() failed: {e}")
+        message.reply("Hit a snag on my end. Mind trying that again?")
+        return
+
+    if agent_reply:
+        message.reply(agent_reply)
+
+
+def start_caspian():
+    print("ASHA bot is listening for incoming messages...")
+    client.listen()
 
 
 def main():
-    @client.on_message
-    def handle(message):
-        print(message)
-        conv_id = getattr(message, "conversation_id", None)
-        identity_key = get_user_identity(
-            message.channel,
-            message.sender['address'],
-            conversation_id=conv_id,
-        )
-        if identity_key is None:
-            identity_key = f"identity:{uuid.uuid4().hex}"
-            r.hset(identity_key, mapping={message.channel: normalize_address(message.sender['address'])}) # noqa
-
-        user_pairing_code = r.hget(identity_key, "pairing_code")
-
-        if not user_pairing_code:
-            valid_data = asyncio.run(check_pairing_code_validity(message.text.strip())) # noqa
-            if not valid_data:
-                message.reply("Looks like you are unauthenticated. Please enter your pairing code.") # noqa
-                return
-
-            r.hset(identity_key, "pairing_code", message.text.strip())
-            project_name = valid_data.get("project_name", "Device")
-            message.reply(f"Device '{project_name}' successfully paired! How can I help you?") # noqa
-            return
-
-        try:
-            agent_reply = asyncio.run(agent(message, identity_key))
-        except Exception as e:
-            print(f"agent() failed: {e}")
-            message.reply("Hit a snag on my end. Mind trying that again?")
-            return
-
-        if agent_reply:
-            message.reply(agent_reply)
-
-    print("ASHA bot is listening for incoming messages...")
-    client.listen()
+    caspian_thread = threading.Thread(target=start_caspian, daemon=True)
+    caspian_thread.start()
+    print("Starting ashaStass API server on port 8081...")
+    uvicorn.run(app, host="0.0.0.0", port=8081)
 
 
 if __name__ == "__main__":
