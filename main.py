@@ -1,6 +1,8 @@
 import asyncio
+import os
 import threading
 import uvicorn
+from dotenv import load_dotenv
 from core.casp import client
 from utils.redis import get_or_create_user_identity
 from agent.mcp_client import agent
@@ -8,6 +10,9 @@ from core.fastapi import app
 from routes.ashaStass import router as asha_router
 import utils.middleware # noqa # loads and uses the cors 
 
+load_dotenv()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
 
 app.include_router(asha_router)
 
@@ -23,7 +28,7 @@ def handle(message):
     )
 
     if not user_pairing_code:
-        web_link = f"http://localhost:3000/pair?channel={message.channel}&address={message.sender['address']}"  # noqa
+        web_link = f"{FRONTEND_URL}/pair?channel={message.channel}&address={message.sender['address']}"
         reply_text = f"Looks like your account is unpaired!\n\nPlease click here to log in and pair your device:\n{web_link}" # noqa
         message.reply(reply_text)
         return
