@@ -71,7 +71,7 @@ def start_telegram():
     print("ASHA bot is listening for Telegram messages...")
     telegram_app.add_handler(CommandHandler("start", start))
     telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    telegram_app.run_polling(bootstrap_retries=-1)
+    telegram_app.run_polling(stop_signals=None, bootstrap_retries=-1)
 
 
 def main():
