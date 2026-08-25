@@ -56,23 +56,23 @@ name = "asha-iris"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "caspian-sdk" },
     { name = "dotenv" },
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "openai-agents" },
     { name = "paho-mqtt" },
+    { name = "python-telegram-bot" },
     { name = "redis" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "caspian-sdk", specifier = ">=0.6.1" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "fastmcp", specifier = ">=3.4.5" },
     { name = "openai-agents", specifier = ">=0.19.1" },
     { name = "paho-mqtt", specifier = ">=2.1.0" },
+    { name = "python-telegram-bot", specifier = ">=22.8" },
     { name = "redis", specifier = ">=8.0.1" },
 ]
 
@@ -157,19 +157,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/87/a4/e534cf7d2d0e8d880e25dd61e8d921ffcfe15bd696734589826f5a2df727/caio-0.9.25-cp314-cp314-manylinux_2_34_aarch64.whl", hash = "sha256:628a630eb7fb22381dd8e3c8ab7f59e854b9c806639811fc3f4310c6bd711d79", size = 81565, upload-time = "2026-03-04T22:08:27.483Z" },
     { url = "https://files.pythonhosted.org/packages/3f/ed/bf81aeac1d290017e5e5ac3e880fd56ee15e50a6d0353986799d1bc5cfd5/caio-0.9.25-cp314-cp314-manylinux_2_34_x86_64.whl", hash = "sha256:0ba16aa605ccb174665357fc729cf500679c2d94d5f1458a6f0d5ca48f2060a7", size = 80071, upload-time = "2026-03-04T22:08:28.751Z" },
     { url = "https://files.pythonhosted.org/packages/86/93/1f76c8d1bafe3b0614e06b2195784a3765bbf7b0a067661af9e2dd47fc33/caio-0.9.25-py3-none-any.whl", hash = "sha256:06c0bb02d6b929119b1cfbe1ca403c768b2013a369e2db46bfa2a5761cf82e40", size = 19087, upload-time = "2025-12-26T15:22:00.221Z" },
-]
-
-[[package]]
-name = "caspian-sdk"
-version = "0.6.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "httpx" },
-    { name = "pydantic" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/9a/0d60850aeea47948d1e49b65f1b9e426d4a193728a61184ea99dfb13639b/caspian_sdk-0.6.1.tar.gz", hash = "sha256:95351c4f52b45427f36f417430397db68eadb5228ec6ae2404ca085dc7f3951b", size = 23480, upload-time = "2026-07-29T12:12:28.172Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b5/91/f2d13bde02b7298313fcc0083937dcbaf82a6dcc6793bdd48f0cb8d510c8/caspian_sdk-0.6.1-py3-none-any.whl", hash = "sha256:107e25ec27753391c2ebf5301657d06b93b30ceb37336b7ec4faafe6d6537864", size = 19569, upload-time = "2026-07-29T12:12:26.881Z" },
 ]
 
 [[package]]
@@ -1245,6 +1232,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5b/42/55c32bb9b12693c092ad250a0e82edb5b31ddeda6eb772de5f308b3804ad/python_multipart-0.0.32.tar.gz", hash = "sha256:be54b7f3fa167bb83e4fcd936b887b708f4e57fe75911c02aebf53efaf8d938e", size = 46881, upload-time = "2026-06-04T16:18:58.647Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/04/e8135ebd1ad02c56ec633277529b2602ff99ff634be76cdba5744cf554fd/python_multipart-0.0.32-py3-none-any.whl", hash = "sha256:ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23", size = 30042, upload-time = "2026-06-04T16:18:57.319Z" },
+]
+
+[[package]]
+name = "python-telegram-bot"
+version = "22.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpcore", marker = "python_full_version >= '3.14'" },
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ba/77/153517bb1ac1bba670c6fb1dbf09e1fd0730494b1705934e715391413a0d/python_telegram_bot-22.8.tar.gz", hash = "sha256:f9d3847fcb23ee603477e442800b33bb4adf851a73e0619d2050be879decf1ef", size = 1551700, upload-time = "2026-06-12T08:10:29.1Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/60/7c/ed7d4dd94280bd434173cae9f7a7aedaaab9af128ae4f494423a5687c820/python_telegram_bot-22.8-py3-none-any.whl", hash = "sha256:42373918097f1b837cc4e717d588c19ea79651497ec712bb5b0c76e5e63c50e1", size = 769397, upload-time = "2026-06-12T08:10:27.066Z" },
 ]
 
 [[package]]

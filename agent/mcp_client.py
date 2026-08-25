@@ -1,5 +1,5 @@
 # flake8: noqa
-"""This file controls the agent, its loop, message entry, agent behaviour, model selection etc""" # noqa
+"""This file controls the agent, its loop, message entry, agent behaviour, model selection etc"""
 from agents import Agent, Runner
 from agents.items import ToolCallItem, ToolCallOutputItem
 import json
@@ -7,16 +7,16 @@ import uuid
 import asyncio
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from dotenv import load_dotenv
-from agent.client import OR_CLIENT, GROQ_CLIENT, gpt_groq_model, openRouter_claude_Sonnet_model  # noqa
-from utils.redis import r, store_message, get_user_messages, clear_identity_completely, _history_to_input_items  # noqa
-from utils.caspian import _keep_typing  # noqa
-from core.fastmcp import _connect_mcp_servers  # noqa
-from prompt.system import get_system_prompt  # noqa
+from agent.client import OR_CLIENT, GROQ_CLIENT, gpt_groq_model, openRouter_claude_Sonnet_model
+from utils.redis import r, store_message, get_user_messages, clear_identity_completely, _history_to_input_items
+from utils.caspian import _keep_typing
+from core.fastmcp import _connect_mcp_servers
+from prompt.system import get_system_prompt
 load_dotenv()
 
 
 async def agent(message, identity_key: str):
-    typing_task = asyncio.create_task(_keep_typing(message, interval=10))
+    typing_task = asyncio.create_task(_keep_typing(message, interval=4.0))
     try:
         return await _agent_inner(message, identity_key)
     finally:
@@ -26,12 +26,12 @@ async def agent(message, identity_key: str):
 async def _agent_inner(message, identity_key: str):
     if message.text and message.text.strip().lower() == "clear":
         clear_identity_completely(identity_key)
-        message.reply("History/session erased from memory")
+        await message.reply("History/session erased from memory")
         return None
 
     if message.text and message.text.strip().lower() == "flashashairis":
         r.flushall()
-        message.reply("Redis database completely flushed")
+        await message.reply("Redis database completely flushed")
         return None
 
     store_message(identity_key, "user", message.text, message.channel)
@@ -45,10 +45,10 @@ async def _agent_inner(message, identity_key: str):
     input_items = _history_to_input_items(history)
 
     raw_code = r.hget(identity_key, "pairing_code")
-    user_pairing_code = raw_code.decode("utf-8") if isinstance(raw_code, bytes) else str(raw_code or "")  # noqa
+    user_pairing_code = raw_code.decode("utf-8") if isinstance(raw_code, bytes) else str(raw_code or "")
 
     async with _connect_mcp_servers(pairing_code=user_pairing_code) as active_mcp_servers:
-        agent = Agent(
+        agent_instance = Agent(
             name="ASHA",
             instructions=get_system_prompt(),
             mcp_servers=active_mcp_servers,
@@ -57,7 +57,7 @@ async def _agent_inner(message, identity_key: str):
                 openai_client=GROQ_CLIENT
             )
         )
-        result = await Runner.run(agent, input_items)
+        result = await Runner.run(agent_instance, input_items)
 
         pending_call_id = None
         for item in result.new_items:
