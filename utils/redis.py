@@ -91,28 +91,41 @@ def clear_identity_completely(identity_key: str) -> None:
     r.delete(identity_key)
 
 
-def _history_to_input_items(history, max_messages: int = 16):
-    recent_history = history[-max_messages:] if len(history) > max_messages else history # noqa
+def _history_to_input_items(history, max_messages: int = 100):
+    recent_history = history[-max_messages:] if len(history) > max_messages else history
     input_items = []
+    seen_call_ids = set()
+
     for h in recent_history:
-        if h["role"] == "tool_call":
-            call = json.loads(h["text"])
-            input_items.append({
-                "type": "function_call",
-                "call_id": call["call_id"],
-                "name": call["name"],
-                "arguments": call["arguments"],
-            })
-        elif h["role"] == "tool_result":
-            result = json.loads(h["text"])
-            input_items.append({
-                "type": "function_call_output",
-                "call_id": result["call_id"],
-                "output": result["output"],
-            })
-        elif h["role"] == "assistant":
-            input_items.append({"role": "assistant", "content": h["text"]})
-        else:
-            input_items.append({"role": "user", "content": f"[via {h['channel']}] {h['text']}"}) # noqa
+        try:
+            if h["role"] == "tool_call":
+                call = json.loads(h["text"])
+                tool_name = call.get("name")
+                call_id = call.get("call_id")
+                if tool_name and call_id:
+                    seen_call_ids.add(call_id)
+                    input_items.append({
+                        "type": "function_call",
+                        "call_id": call_id,
+                        "name": tool_name,
+                        "arguments": call.get("arguments", "{}"),
+                    })
+            elif h["role"] == "tool_result":
+                result = json.loads(h["text"])
+                call_id = result.get("call_id")
+                if call_id and call_id in seen_call_ids:
+                    input_items.append({
+                        "type": "function_call_output",
+                        "call_id": call_id,
+                        "output": result.get("output", ""),
+                    })
+            elif h["role"] == "assistant":
+                if h.get("text"):
+                    input_items.append({"role": "assistant", "content": h["text"]})
+            else:
+                if h.get("text"):
+                    input_items.append({"role": "user", "content": f"[via {h['channel']}] {h['text']}"})
+        except Exception:
+            continue
 
     return input_items

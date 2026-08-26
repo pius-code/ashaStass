@@ -24,15 +24,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
     user = update.effective_user
-    address = user.username if (user and user.username) else str(user.id if user else "unknown")
-    identity_key, user_pairing_code = get_or_create_user_identity("telegram", address)
+    address = user.username if (user and user.username) else str(user.id if user else "unknown") # noqa
+    identity_key, user_pairing_code = get_or_create_user_identity("telegram", address) # noqa
 
     if not user_pairing_code:
         web_link = f"{FRONTEND_URL}/pair?channel=telegram&address={address}"
-        reply_text = f"Welcome to ASHA!\n\nPlease link your hardware device by clicking here:\n{web_link}"
+        reply_text = f"Welcome to ASHA!\n\nPlease link your hardware device by clicking here:\n{web_link}" # noqa
         await update.message.reply_text(reply_text)
     else:
-        await update.message.reply_text("ASHA is online and ready for your commands!")
+        await update.message.reply_text("ASHA is online and ready for your commands!") # noqa
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -51,7 +51,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not user_pairing_code:
         web_link = f"{FRONTEND_URL}/pair?channel=telegram&address={address}"
-        reply_text = f"Looks like your account is unpaired!\n\nPlease click here to log in and pair your device:\n{web_link}"
+        reply_text = f"Looks like your account is unpaired!\n\nPlease click here to log in and pair your device:\n{web_link}" # noqa
         await update.message.reply_text(reply_text)
         return
 
@@ -61,7 +61,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(agent_reply)
     except Exception as e:
         print(f"agent() failed: {e}")
-        await update.message.reply_text("Hit a snag on my end. Mind trying that again?")
+        await update.message.reply_text("Hit a snag on my end. Mind trying that again?") # noqa
 
 
 def start_telegram():
@@ -70,7 +70,7 @@ def start_telegram():
         return
     print("ASHA bot is listening for Telegram messages...")
     telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)) # noqa
     telegram_app.run_polling(stop_signals=None, bootstrap_retries=-1)
 
 

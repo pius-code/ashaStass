@@ -20,7 +20,7 @@ async def claim_device_with_token(pairing_code: str, token: str):
             if value.status_code == 200 and data.get("valid"):
                 return data
             else:
-                detail = data.get("detail") or f"Backend returned HTTP {value.status_code}"
+                detail = data.get("detail") or f"Backend returned HTTP {value.status_code}" # noqa
                 return {"valid": False, "detail": detail}
     except Exception as e:
         print(f"Error occurred claiming device: {e}")

@@ -8,7 +8,7 @@ import asyncio
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from dotenv import load_dotenv
 from agent.client import OR_CLIENT, GROQ_CLIENT, gpt_groq_model, openRouter_claude_Sonnet_model
-from utils.redis import r, store_message, get_user_messages, clear_identity_completely, _history_to_input_items
+from utils.redis import r, store_message, get_user_messages, clear_history, clear_identity_completely, _history_to_input_items
 from utils.caspian import _keep_typing
 from core.fastmcp import _connect_mcp_servers
 from prompt.system import get_system_prompt
@@ -24,12 +24,17 @@ async def agent(message, identity_key: str):
 
 
 async def _agent_inner(message, identity_key: str):
-    if message.text and message.text.strip().lower() == "clear":
+    if message.text and message.text.strip().lower() in ["delete", "/delete"]:
+        clear_history(identity_key)
+        await message.reply("Conversation history deleted. Device pairing kept intact.")
+        return None
+
+    if message.text and message.text.strip().lower() in ["clear", "/clear"]:
         clear_identity_completely(identity_key)
         await message.reply("History/session erased from memory")
         return None
 
-    if message.text and message.text.strip().lower() == "flashashairis":
+    if message.text and message.text.strip().lower() == "flashashastass":
         r.flushall()
         await message.reply("Redis database completely flushed")
         return None
