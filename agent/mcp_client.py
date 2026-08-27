@@ -7,7 +7,7 @@ import uuid
 import asyncio
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from dotenv import load_dotenv
-from agent.client import OR_CLIENT, GROQ_CLIENT, gpt_groq_model, openRouter_claude_Sonnet_model
+from agent.client import OR_CLIENT, GROQ_CLIENT, gpt_groq_model, openRouter_claude_Sonnet_model, openRouter_gemini_7flash_model
 from utils.redis import r, store_message, get_user_messages, clear_history, clear_identity_completely, _history_to_input_items
 from utils.caspian import _keep_typing
 from core.fastmcp import _connect_mcp_servers
@@ -58,8 +58,8 @@ async def _agent_inner(message, identity_key: str):
             instructions=get_system_prompt(),
             mcp_servers=active_mcp_servers,
             model=OpenAIChatCompletionsModel(
-                model=gpt_groq_model,
-                openai_client=GROQ_CLIENT
+                model=openRouter_gemini_7flash_model,
+                openai_client=OR_CLIENT
             )
         )
         result = await Runner.run(agent_instance, input_items)
